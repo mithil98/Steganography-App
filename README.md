@@ -6,7 +6,7 @@
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)
 ![Status](https://img.shields.io/badge/status-live-success.svg?style=flat-square)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/b5b5c772-91e8-4228-8636-f32f99999999/deploy-status)](https://app.netlify.com/sites/genuine-valkyrie-107ec2/deploys)
+
 
 ---
 
