@@ -1,153 +1,94 @@
-// --- UI INTERACTIONS ---
+const DELIMITER = "##STEGOGUARD_SEPARATOR_V1##";
 
-// Tab Switching
 function switchTab(tab) {
-    // Remove active class from all buttons and panels
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     
-    // Add active class to specific elements
     if(tab === 'encode') {
-        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.querySelectorAll('.nav-btn')[0].classList.add('active');
         document.getElementById('encodePanel').classList.add('active');
     } else {
-        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.querySelectorAll('.nav-btn')[1].classList.add('active');
         document.getElementById('decodePanel').classList.add('active');
     }
 }
 
-// Update file name display when file is selected
-document.getElementById('uploadImage').addEventListener('change', function(e) {
-    const fileName = e.target.files[0] ? e.target.files[0].name : "Click to browse or drag image here";
-    e.target.nextElementSibling.querySelector('span').innerText = fileName;
-});
-
-document.getElementById('decodeImageFile').addEventListener('change', function(e) {
-    const fileName = e.target.files[0] ? e.target.files[0].name : "Select the PNG file containing secret data";
-    e.target.nextElementSibling.querySelector('span').innerText = fileName;
-});
-
-
-// --- STEGANOGRAPHY LOGIC ---
-
-// Convert string to binary
-function strToBin(str) {
-    let bin = "";
-    for (let i = 0; i < str.length; i++) {
-        bin += str[i].charCodeAt(0).toString(2).padStart(8, '0');
+function updateLabel(input, labelId) {
+    if(input.files && input.files[0]) {
+        document.getElementById(labelId).innerText = input.files[0].name;
     }
-    return bin;
 }
 
-// Convert binary to string
-function binToStr(bin) {
-    let str = "";
-    for (let i = 0; i < bin.length; i += 8) {
-        let byte = bin.slice(i, i + 8);
-        str += String.fromCharCode(parseInt(byte, 2));
-    }
-    return str;
-}
+document.getElementById('coverFile').addEventListener('change', (e) => updateLabel(e.target, 'coverLabel'));
+document.getElementById('secretFile').addEventListener('change', (e) => updateLabel(e.target, 'fileLabel'));
+document.getElementById('decodeFile').addEventListener('change', (e) => updateLabel(e.target, 'decodeLabel'));
 
-function encodeSteganography() {
-    const fileInput = document.getElementById('uploadImage');
-    const text = document.getElementById('secretText').value;
-    const canvas = document.getElementById('processCanvas');
-    const ctx = canvas.getContext('2d');
-    const preview = document.getElementById('encodePreview');
-    const outputImg = document.getElementById('outputImage');
-    const downloadBtn = document.getElementById('downloadBtn');
-
-    if (!fileInput.files[0] || !text) {
-        alert("Please provide both an image and a secret message.");
+async function embedData() {
+    const coverInput = document.getElementById('coverFile');
+    const secretInput = document.getElementById('secretFile');
+    
+    if (!coverInput.files[0] || !secretInput.files[0]) {
+        alert("Please select both files.");
         return;
     }
 
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const img = new Image();
-        img.onload = function() {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imgData.data;
-
-            // Add NULL terminator to end of string
-            const binaryMessage = strToBin(text) + "00000000"; 
-
-            if (binaryMessage.length > data.length / 4) {
-                alert("Text is too long for this image! Try a larger image or shorter text.");
-                return;
-            }
-
-            // LSB Encoding (Red Channel)
-            for (let i = 0; i < binaryMessage.length; i++) {
-                let pixelIndex = i * 4; 
-                let originalValue = data[pixelIndex];
-                let clearedValue = originalValue & 0xFE; 
-                let bitToHide = parseInt(binaryMessage[i]);
-                data[pixelIndex] = clearedValue | bitToHide;
-            }
-
-            ctx.putImageData(imgData, 0, 0);
-
-            const resultDataUrl = canvas.toDataURL('image/png');
-            outputImg.src = resultDataUrl;
-            downloadBtn.href = resultDataUrl;
-            preview.style.display = "block";
-        };
-        img.src = event.target.result;
-    };
-    reader.readAsDataURL(fileInput.files[0]);
+    const coverFile = coverInput.files[0];
+    const secretFile = secretInput.files[0];
+    const coverBuffer = await coverFile.arrayBuffer();
+    const secretBuffer = await secretFile.arrayBuffer();
+    
+    const metadata = JSON.stringify({ n: secretFile.name, t: secretFile.type });
+    const encoder = new TextEncoder();
+    const delimiterBytes = encoder.encode(DELIMITER);
+    const metadataBytes = encoder.encode(metadata);
+    
+    const finalBlob = new Blob([coverBuffer, delimiterBytes, metadataBytes, delimiterBytes, secretBuffer], { type: coverFile.type });
+    
+    const url = URL.createObjectURL(finalBlob);
+    const dlBtn = document.getElementById('downloadBtn');
+    dlBtn.href = url;
+    dlBtn.download = "stego_" + coverFile.name;
+    
+    document.getElementById('finalFileSize').innerText = `File Size: ${(finalBlob.size/1024/1024).toFixed(2)}MB`;
+    document.getElementById('encodeResult').style.display = 'block';
 }
 
-function decodeSteganography() {
-    const fileInput = document.getElementById('decodeImageFile');
-    const outputArea = document.getElementById('decodedOutput');
-    const canvas = document.getElementById('processCanvas');
-    const ctx = canvas.getContext('2d');
-    const resultArea = document.getElementById('decodeResultArea');
+async function extractData() {
+    const decodeInput = document.getElementById('decodeFile');
+    if (!decodeInput.files[0]) { alert("Please select a file."); return; }
 
-    if (!fileInput.files[0]) {
-        alert("Please upload an encoded image.");
+    const file = decodeInput.files[0];
+    const buffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(buffer);
+    
+    const binaryString = Array.from(uint8Array).map(b => String.fromCharCode(b)).join('');
+    const delimStr = Array.from(new TextEncoder().encode(DELIMITER)).map(b => String.fromCharCode(b)).join('');
+    
+    const parts = binaryString.split(delimStr);
+    
+    if (parts.length < 3) {
+        alert("No hidden data found.");
         return;
     }
 
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const img = new Image();
-        img.onload = function() {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
+    const secretDataStr = parts[parts.length - 1];
+    const metaDataStr = parts[parts.length - 2];
 
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imgData.data;
-            
-            let binaryMessage = "";
-            let tempBin = "";
+    const secretBytes = new Uint8Array(secretDataStr.length);
+    for (let i = 0; i < secretDataStr.length; i++) secretBytes[i] = secretDataStr.charCodeAt(i);
 
-            for (let i = 0; i < data.length; i += 4) {
-                const redValue = data[i];
-                const bit = redValue & 1; 
-                
-                tempBin += bit;
+    let metadata;
+    try { metadata = JSON.parse(metaDataStr); } catch (e) { alert("Corrupt metadata."); return; }
 
-                if (tempBin.length === 8) {
-                    if (tempBin === "00000000") {
-                        break;
-                    }
-                    binaryMessage += tempBin;
-                    tempBin = "";
-                }
-            }
-            
-            resultArea.style.display = "block";
-            outputArea.value = binToStr(binaryMessage);
-        };
-        img.src = event.target.result;
-    };
-    reader.readAsDataURL(fileInput.files[0]);
+    const blob = new Blob([secretBytes], { type: metadata.t });
+    const url = URL.createObjectURL(blob);
+    
+    document.getElementById('foundFileName').innerText = metadata.n;
+    document.getElementById('foundFileSize').innerText = (blob.size / 1024).toFixed(2) + " KB";
+    
+    const dlBtn = document.getElementById('fileDownloadBtn');
+    dlBtn.href = url;
+    dlBtn.download = metadata.n;
+    
+    document.getElementById('decodeResult').style.display = 'block';
 }
