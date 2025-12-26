@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SteganoGuard | Secure Image Steganography</title>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="url(#grad1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <defs>
+                        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <h1>SteganoGuard</h1>
+            </div>
+            <p class="subtitle">Advanced LSB Steganography Tool</p>
+        </header>
+
+        <div class="glass-card">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('encode')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    Hide Data
+                </button>
+                <button class="tab-btn" onclick="switchTab('decode')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Reveal Data
+                </button>
+            </div>
+
+            <div class="content-area">
+                
+                <div id="encodePanel" class="panel active">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <label>Upload Source Image</label>
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="uploadImage" accept="image/png, image/jpeg">
+                                <div class="file-custom-label">
+                                    <span>Click to browse or drag image here</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <label>Secret Message</label>
+                            <textarea id="secretText" placeholder="Type the text you want to hide securely..."></textarea>
+                        </div>
+                    </div>
+
+                    <button class="action-btn encode-btn" onclick="encodeSteganography()">
+                        Encrypt & Embed
+                    </button>
+
+                    <div class="result-area" id="encodePreview">
+                        <div class="result-header">
+                            <h3>Processing Complete</h3>
+                            <p>Your data has been successfully embedded.</p>
+                        </div>
+                        <div class="image-preview-box">
+                            <img id="outputImage" alt="Encoded Result">
+                        </div>
+                        <a id="downloadBtn" class="download-btn" download="secret_image.png" href="#">
+                            Download Encoded Image
+                        </a>
+                    </div>
+                </div>
+
+                <div id="decodePanel" class="panel">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <label>Upload Encrypted Image</label>
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="decodeImageFile" accept="image/png">
+                                <div class="file-custom-label">
+                                    <span>Select the PNG file containing secret data</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="action-btn decode-btn" onclick="decodeSteganography()">
+                        Decrypt & Read
+                    </button>
+
+                    <div class="result-area result-decode" id="decodeResultArea">
+                        <label>Decoded Message:</label>
+                        <textarea id="decodedOutput" readonly placeholder="Waiting for input..."></textarea>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <canvas id="processCanvas"></canvas>
+
+    <script src="script.js"></script>
+</body>
+</html>
